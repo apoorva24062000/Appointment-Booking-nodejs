@@ -1,0 +1,387 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointment Booking App</title>
+    <!-- Include Socket.IO -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script> -->
+
+    <!-- Add Bootstrap CSS link -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+
+    <!-- Custom CSS for button size and file counts section -->
+    <style>
+        #updateTableButton {
+            position: fixed;
+            right: 10px;
+            /* Adjust the right position as needed */
+
+            top: 50%;
+            /* Adjust the top position as needed */
+            transform: translateY(-50%);
+            /* Center the button vertically */
+            width: 80px;
+            /* Adjust the width as needed */
+            height: 30px;
+            /* Adjust the height as needed */
+            padding: 5px 10px;
+            /* Adjust padding to control button size */
+            font-size: 14px;
+            /* Adjust font size as needed */
+            background: steelblue;
+            border: 1px solid black;
+            border-radius: 10px;
+        }
+
+
+        .form-control[type=file]:not(:disabled):not([readonly]) {
+            cursor: pointer;
+            background: aliceblue;
+        }
+
+        #fileContainer {
+            display: flex;
+            align-items: center;
+        }
+
+        #fileCounts {
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 20px;
+            margin-right: 70px;
+            border: solid 2px;
+            margin-bottom: 20px;
+            width: 30%;
+            background-color: aliceblue;
+        }
+
+        #fileCounts h5 {
+            font-family: cursive;
+            margin-bottom: 5px;
+            font-weight: bold;
+            display: block;
+        }
+
+        #fileCounts ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        #fileCounts li {
+            margin-bottom: 3px;
+            font-weight: 600;
+        }
+
+        #toaster {
+            /*Added Toaster css*/
+            display: none;
+            position: fixed;
+            top: 70px;
+            z-index: 1;
+            right: 20px;
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        #duplicateToaster {
+            /*Added Toaster css*/
+            display: none;
+            position: fixed;
+            top: 70px;
+            z-index: 1;
+            right: 20px;
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        #closeButton {
+            cursor: pointer;
+            float: right;
+            border-radius: 10px;
+            border: solid 1px white;
+            padding: 2px;
+        }
+
+        #replaceButton {
+            cursor: pointer;
+            float: right;
+            border-radius: 10px;
+            border: solid 1px white;
+            padding: 2px;
+            margin-right: 14px;
+        }
+
+        #filters2 {
+            display: none;
+            font-weight: bold;
+            font-family: cursive;
+        }
+
+        #filters1 {
+            font-weight: bold;
+            font-family: cursive;
+        }
+
+        .user {
+            color: #fff;
+            /* margin-left: 940px; */
+        }
+
+        .sort-arrow {
+            color: lightgrey;
+            font-size: 10px;
+        }
+
+        /* Set the height of the map container */
+        #map {
+            height: 222px;
+            width: 90%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="modal fade" id="appointmentsModal" tabindex="-1" role="dialog" aria-labelledby="appointmentsModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="appointmentsModalLabel">Booked Appointments</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">ID</th>
+                                <th scope="col">Doctor Email</th>
+                                <th scope="col">Customer Email</th>
+                                <th scope="col">Date</th>
+                                <th scope="col">Time</th>
+                                <th scope="col">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="appointmentsTableBody">
+                            <!-- Appointments will be dynamically inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Your Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">Appointment Booking Appp</a>
+            <a href="#" style="color: #fff; margin-left: 50%; text-decoration: none;" class="user" data-toggle="modal"
+                data-target="#appointmentsModal">View Booked Appointments</a>
+            <span class="user" id="userloggedIn">Apoorva Singh</span>
+            <img src="https://cdn.pixabay.com/photo/2017/05/29/23/02/logging-out-2355227_1280.png" 
+     height="35px" width="35px" id="logoutLink" onclick="logout()" style="cursor: pointer;">
+
+        </div>
+    </nav>
+
+    <!-- Create Modal -->
+    <div class="modal fade" id="createModal" tabindex="-1" role="dialog" aria-labelledby="createModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createModalLabel">Create Transaction</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Add input fields for amount, category, description, and transaction_date -->
+                    <div class="form-group">
+                        <label for="amount">Doctor Name</label>
+                        <input type="number" class="form-control" id="amount" placeholder="Enter amount" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="category">Category</label>
+                        <input type="text" class="form-control" id="category" placeholder="Enter category" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea class="form-control" id="description" placeholder="Enter description"
+                            required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="transaction_date">Transaction Date</label>
+                        <input type="date" class="form-control" id="transaction_date" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="saveTransaction">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mt-3">
+
+        <div id="fileContainer">
+
+            <img src="https://img.freepik.com/free-vector/add-files-concept-illustration_114360-341.jpg?w=740&t=st=1705864326~exp=1705864926~hmac=baa8edf8038c8eed4d92454913ea228cbf3f8f08211de7e4ecdf9e72b7f24080"
+                alt="Lamp" id='img' width="222" height="222">
+            <div id="map"></div>
+
+        </div></br>
+        <input type="text" id="searchInput" class="form-control mb-3" placeholder="Search by expertise or name"
+        onkeyup="searchDoctors()">
+        <div class="card border-0">
+            <div class="card-header">
+                <h5 class="card-title"> Near By Doctor</h5>
+            </div>
+            <div class="card-body">
+                <table class="table" id="data-table">
+                    <thead>
+                        <th scope="col">Profile Image
+                            <span id="filename-sort-arrow" class="sort-arrow">&#9660;&#9650;</span>
+                        </th>
+
+                        <th scope="col">Doctor Name <span id="filename-sort-arrow"
+                                class="sort-arrow">&#9660;&#9650;</span></th>
+                        <th scope="col"> Expertise <span id="folder-sort-arrow" class="sort-arrow">&#9660;&#9650;</span>
+                        </th>
+                        <th scope="col">Actions</th>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+                <nav aria-label="Page navigation">
+                    <ul class="pagination" id="pagination"></ul>
+                </nav>
+            </div>
+        </div>
+
+        <div id="doctorModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="doctorModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="doctorModalLabel">Doctor Details</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <img class="modal-image img-fluid" src="" alt="Doctor Image">
+                        <p class="modal-name mt-3"></p>
+                        <p class="modal-expertise mt-3"></p>
+                        <p class="modal-experience mt-3"></p>
+                        <p class="modal-address mt-3"></p>
+                        <p class="modal-contact-information mt-3"></p>
+                        <p class="modal-timings mt-3"></p>
+                        <button id="bookAppointmentBtn" class="btn btn-success mt-3">Book Appointment</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="map"></div>
+        <!-- Add Bootstrap JS and Popper.js scripts -->
+        <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+        <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.18.0/font/bootstrap-icons.css">
+        <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+        <script src="https://cdn.socket.io/4.1.2/socket.io.min.js"></script>
+        <!-- jQuery -->
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+        <!-- DataTables JS -->
+        <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+        <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script> -->
+        <!-- Add your custom JavaScript file -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
+
+        <script src="/js/home.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@10/dist/sweetalert2.min.css">
+        <script>
+            if (!window.sessionStorage.token) {
+                window.location.href = '/'
+            }
+        </script>
+         <script>
+            function logout() {
+                if (window.sessionStorage.token) {
+                    // Display a confirmation box using SweetAlert
+                    Swal.fire({
+                        title: 'Logout',
+                        text: 'Are you sure you want to logout?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'Yes, logout'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Redirect to logout page or perform logout action
+                            window.location.href = '/';
+                        }
+                    });
+                }
+            }
+        </script>
+
+<script>
+    // Function to search doctors by expertise and name
+    const searchDoctors = () => {
+        const input = document.getElementById('searchInput').value.toUpperCase();
+        const table = document.getElementById('data-table');
+        const tableRows = table.getElementsByTagName('tr');
+
+        // Loop through all table rows, and hide those who don't match the search query
+        for (let i = 0; i < tableRows.length; i++) {
+            const doctorName = tableRows[i].getElementsByTagName('td')[1];
+            const expertise = tableRows[i].getElementsByTagName('td')[2];
+
+            if (doctorName || expertise) {
+                if (doctorName.textContent.toUpperCase().indexOf(input) > -1 || expertise.textContent.toUpperCase().indexOf(input) > -1) {
+                    tableRows[i].style.display = '';
+                } else {
+                    tableRows[i].style.display = 'none';
+                }
+            }
+        }
+    };
+</script>
+<script>
+    // let userName=document.getElementById("userloggedIn");
+    let Name=window.sessionStorage.userName;
+    console.log(Name)
+    if(window.sessionStorage.token)
+    {
+      document.getElementById("userloggedIn").innerHTML=Name;
+    }
+  </script>
+  
+
+</body>
